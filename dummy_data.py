@@ -3,6 +3,7 @@ import os
 import random
 import shutil
 import threading
+import uuid
 
 from appwrite.id import ID
 from appwrite.input_file import InputFile
@@ -21,43 +22,46 @@ def add_users_and_posts():
         )
 
         # save file to a temp location
-        path = f"{temp_location}/post{i}image{j}.jpeg"
-        with open(path, 'wb') as f:
-            response.raw.decode_content = True
-            shutil.copyfileobj(response.raw, f)
+        if response.status_code == 200:
+            path = f"{temp_location}/{uuid.uuid4()}.jpeg"
+            with open(path, 'wb') as f:
+                response.raw.decode_content = True
+                shutil.copyfileobj(response.raw, f)
 
-        # upload a file to storage
-        file = appwrite_conf.storages.create_file(
-                    settings.APPWRITE_USER_DATA_STORAGE_ID,
-                    ID.unique(),
-                    InputFile.from_path(path)
-                )
+            # upload a file to storage
+            file = appwrite_conf.storages.create_file(
+                settings.APPWRITE_USER_DATA_STORAGE_ID,
+                ID.unique(),
+                InputFile.from_path(path)
+            )
 
-        post_data = {
-            "posted_on": datetime.datetime.now().isoformat(),
-            "user_id": user.get("$id"),
-            "caption": f"Parent Iteration: {i} and Loop Iteration: {j}",
-            "file_ids": [file.get("$id")]
-        }
+            post_data = {
+                "posted_on": datetime.datetime.now().isoformat(),
+                "user_id": user.get("$id"),
+                "caption": f"Parent Iteration: {i} and Loop Iteration: {j}",
+                "file_ids": [file.get("$id")]
+            }
 
-        if(random.randint(0, 1) == 1):
-            if len(liked_by) > 1:
-                n = random.randint(0, (len(liked_by) - 1))
-                post_data["liked_by"] = random.choices(liked_by, k=n)
-            else:
-                post_data["liked_by"] = liked_by
+            if(random.randint(0, 1) == 1):
+                if len(liked_by) > 1:
+                    n = random.randint(0, (len(liked_by) - 1))
+                    post_data["liked_by"] = random.choices(liked_by, k=n)
+                else:
+                    post_data["liked_by"] = liked_by
 
-        # create post
-        appwrite_conf.databases.create_document(
-            settings.APPWRITE_DATABASE_ID,
-            settings.APPWRITE_POST_COLLECTION,
-            ID.unique(),
-            post_data
-        )
+            # create post
+            appwrite_conf.databases.create_document(
+                settings.APPWRITE_DATABASE_ID,
+                settings.APPWRITE_POST_COLLECTION,
+                ID.unique(),
+                post_data
+            )
 
-        # remove file from temp location
-        os.remove(path)
-        print(f"added post {j} for user {i}")
+            # remove file from temp location
+            os.remove(path)
+            print(f"added post {j} for user {i}")
+        else:
+            print("skip")
 
     def create_user_and_profiles(temp_location, user_ids, i):
         # create user account
@@ -85,7 +89,7 @@ def add_users_and_posts():
         threads = []
 
         # create posts
-        for j in range(1, random.randint(10, 50)):
+        for j in range(1, random.randint(10, 51)):
             threads.append(
                     threading.Thread(
                         target=create_posts,
