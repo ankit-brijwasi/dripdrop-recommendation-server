@@ -1,3 +1,4 @@
+import re
 from appwrite.query import Query
 from conf import settings
 
@@ -11,13 +12,13 @@ def get_posts_from_db(limit = 25, offset = 0):
         [
             Query.limit(limit),
             Query.offset(offset),
-            Query.order_asc("posted_on")
+            Query.order_desc("posted_on")
         ],
     )
     return fetched_posts
 
 
-def get_profiles_from_db(limit = 0, offset = 0):
+def get_profiles_from_db(user_id, limit = 20, offset = 0):
     fetched_profiles = databases.list_documents(
         settings.APPWRITE_DATABASE_ID,
         settings.APPWRITE_PROFILE_COLLECTION,

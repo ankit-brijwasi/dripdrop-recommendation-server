@@ -36,7 +36,7 @@ def add_users_and_posts():
             )
 
             post_data = {
-                "posted_on": datetime.datetime.now().isoformat(),
+                "posted_on": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 "user_id": user.get("$id"),
                 "caption": f"Parent Iteration: {i} and Loop Iteration: {j}",
                 "file_ids": [file.get("$id")]

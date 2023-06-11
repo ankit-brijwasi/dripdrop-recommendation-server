@@ -1,5 +1,3 @@
-import random
-
 from appwrite.services.account import Account
 from fastapi import FastAPI, Response, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +15,7 @@ app.add_middleware(
 )
 
 @app.get("/recommend/accounts/")
-def recommend_accounts(access_token: str = Header(title="access_token"), limit: int = 25, offset: int = 0):
+def recommend_accounts(access_token: str = Header(title="access_token"), limit: int = 15, offset: int = 0):
     if not access_token:
         return Response('{"detail": "No access token was provided"}', 401)
 
@@ -26,27 +24,19 @@ def recommend_accounts(access_token: str = Header(title="access_token"), limit: 
 
     try:
         user = account.get()
-        profiles = get_profiles_from_db()
+        profiles = get_profiles_from_db(user.get("$id"))
         profiles["documents"] = list(filter(
             lambda profile: not profile.get("user_id") == user.get("$id"),
             profiles["documents"]
         ))
-        profiles["documents"] = list(filter(
-            lambda profile: user.get("$id") not in profile["followers"],
-            profiles["documents"]
-        ))
-        profiles["documents"] = list(filter(
-            lambda profile: user.get("$id") not in profile["following"],
-            profiles["documents"]
-        ))
-
         profiles["documents"] = sorted(
             profiles["documents"],
             key=lambda profile: len(profile["following"]),
             reverse=True
         )
         return profiles
-    except Exception:
+    except Exception as e:
+        print(e)
         return Response(
             '{"detail": "No access token was provided"}',
             401
@@ -66,27 +56,6 @@ def recommend_posts(access_token: str = Header(title="access_token"), limit: int
     try:
         account.get()
         posts = get_posts_from_db(limit, offset)
-        # posts["documents"] = list(
-        #     filter(
-        #         lambda post: user.get("$id") not in post["liked_by"],
-        #         posts["documents"]
-        #     )
-        # )
-
-        # posts["documents"] = list(
-        #     filter(
-        #         lambda post: user.get("$id") not in post["comments"],
-        #         posts["documents"]
-        #     )
-        # )
-
-        # posts["documents"] = list(
-        #     filter(
-        #         lambda post: user.get("$id") not in post["saved_by"],
-        #         posts["documents"]
-        #     )
-        # )
-        # random.shuffle(posts["documents"])
         return posts
 
     except Exception as e:
