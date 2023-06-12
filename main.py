@@ -24,11 +24,18 @@ def recommend_accounts(access_token: str = Header(title="access_token"), limit: 
 
     try:
         user = account.get()
-        profiles = get_profiles_from_db(user.get("$id"))
-        profiles["documents"] = list(filter(
-            lambda profile: not profile.get("user_id") == user.get("$id"),
-            profiles["documents"]
-        ))
+        profiles = get_profiles_from_db()
+
+        for document in profiles["documents"]:
+            document["followers"] = list(filter(bool, document["followers"]))
+            document["following"] = list(filter(bool, document["following"]))
+
+        profiles["documents"] = list(
+            filter(
+                lambda profile: not profile.get("user_id") == user.get("$id"),
+                profiles["documents"]
+            )
+        )
         profiles["documents"] = sorted(
             profiles["documents"],
             key=lambda profile: len(profile["following"]),

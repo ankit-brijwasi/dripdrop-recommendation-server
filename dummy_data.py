@@ -114,6 +114,35 @@ def add_users_and_posts():
     for thread in threads: thread.start()
     for thread in threads: thread.join()
 
+def gen_notification_func():
+    class Conf:
+
+        def __init__(self) -> None:
+            self.APPWRITE_ENDPOINT = os.environ.get("APPWRITE_ENDPOINT")
+            self.APPWRITE_PROJECT_ID = os.environ.get("APPWRITE_PROJECT_ID")
+            self.APPWRITE_SECRET_KEY = os.environ.get("APPWRITE_SECRET_KEY")
+
+            # collections
+            self.APPWRITE_PROFILE_COLLECTION = os.environ.get("APPWRITE_PROFILE_COLLECTION")
+            self.APPWRITE_POST_COLLECTION = os.environ.get("APPWRITE_POST_COLLECTION")
+            self.APPWRITE_NOTIFICATION_COLLECTION = os.environ.get("APPWRITE_NOTIFICATION_COLLECTION")
+
+            # databases
+            self.APPWRITE_DATABASE_ID = os.environ.get("APPWRITE_DATABASE_ID")
+
+            # storage
+            self.APPWRITE_USER_DATA_STORAGE_ID = os.environ.get("APPWRITE_USER_DATA_STORAGE_ID")
+
+    c = Conf()
+    func = appwrite_conf.functions.create(
+        name="generate_notifications",
+        function_id=ID.unique(),
+        runtime="python-3.9",
+        enabled=True
+    )
+
+    for key, value in c.__dict__.items():
+        appwrite_conf.functions.create_variable(func.get("$id"), key, value)
 
 def remove_users_and_posts():
     def remove_users():
@@ -189,9 +218,31 @@ def remove_users_and_posts():
             files = appwrite_conf.storages.list_files(settings.APPWRITE_USER_DATA_STORAGE_ID)
             total = files.get("total")
 
+    def remove_notification():
+        notifications = appwrite_conf.databases.list_documents(
+            settings.APPWRITE_DATABASE_ID,
+            settings.APPWRITE_NOTIFICATION_COLLECTION
+        )
+        total = notifications.get("total")
+
+        print("Removing all the notifications...")
+        while total != 0:
+            for notification in notifications.get("documents"):
+                appwrite_conf.databases.delete_document(
+                    settings.APPWRITE_DATABASE_ID,
+                    settings.APPWRITE_NOTIFICATION_COLLECTION,
+                    notification.get("$id")
+                )
+
+            notifications = appwrite_conf.databases.list_documents(
+                settings.APPWRITE_DATABASE_ID,
+                settings.APPWRITE_NOTIFICATION_COLLECTION
+            )
+            total = notifications.get("total")
+
     threads = [
         threading.Thread(target=func) \
-        for func in [remove_users, remove_profiles, remove_posts, remove_files]
+        for func in [remove_users, remove_profiles, remove_posts, remove_files, remove_notification]
     ]
 
     for thread in threads: thread.start()
@@ -208,6 +259,8 @@ if __name__ == "__main__":
             add_users_and_posts()
         elif option == "remove_users_and_posts":
             remove_users_and_posts()
+        elif option == "gen_notification_func":
+            gen_notification_func()
         else:
             print("Please pass a valid option!")
 
